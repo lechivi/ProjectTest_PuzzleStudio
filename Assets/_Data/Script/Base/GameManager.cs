@@ -29,7 +29,7 @@ public class GameManager : SingletonMonoBehaviour<GameManager>
 		this.goalTracker.OnGoalCompleted += OnGoalCompleted;
 	}
 
-	[EasyButtons.Button]
+	// [EasyButtons.Button]
 	public void LoadLevel()
 	{
 		this.gridSystem.LoadLevel(this.levelData);
