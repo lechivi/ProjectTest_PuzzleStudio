@@ -14,9 +14,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   GoalColors:
   - Color: 30
-    Count: 5
+    Count: 2
   - Color: 50
-    Count: 5
+    Count: 2
   CellDatas:
   - Col: -2
     Row: 1
@@ -25,7 +25,7 @@ MonoBehaviour:
   - Col: -2
     Row: 0
     StartAtTop: 0
-    Colors: 320000003c000000
+    Colors: 1e00000028000000
   - Col: -2
     Row: -1
     StartAtTop: 0
@@ -61,68 +61,7 @@ MonoBehaviour:
   - Col: 1
     Row: 0
     StartAtTop: 1
-    Colors: 28000000
-  - Col: 1
-    Row: -2
-    StartAtTop: 0
-    Colors: 3c0000000a000000
-  - Col: 2
-    Row: 1
-    StartAtTop: 0
-    Colors: 280000003200000014000000
-  - Col: 2
-    Row: 0
-    StartAtTop: 0
-    Colors: 0a0000001e000000
-  - Col: 2
-    Row: -1
-    StartAtTop: 1
-    Colors: 32000000
-  Cells:
-  - Col: -2
-    Row: 1
-    StartAtTop: 1
-    Colors: 1e0000003c00000028000000
-  - Col: -2
-    Row: 0
-    StartAtTop: 0
-    Colors: 320000003c000000
-  - Col: -2
-    Row: -1
-    StartAtTop: 0
-    Colors: 3200000014000000
-  - Col: -1
-    Row: 1
-    StartAtTop: 1
-    Colors: 320000001e0000000a000000
-  - Col: -1
-    Row: 0
-    StartAtTop: 1
-    Colors: 280000001e00000032000000
-  - Col: -1
-    Row: -2
-    StartAtTop: 1
-    Colors: 320000001e000000
-  - Col: 0
-    Row: 2
-    StartAtTop: 1
-    Colors: 140000001e000000
-  - Col: 0
-    Row: 1
-    StartAtTop: 1
-    Colors: 14000000
-  - Col: 0
-    Row: -2
-    StartAtTop: 1
-    Colors: 320000001e00000028000000
-  - Col: 1
-    Row: 1
-    StartAtTop: 1
-    Colors: 3c000000
-  - Col: 1
-    Row: 0
-    StartAtTop: 1
-    Colors: 28000000
+    Colors: 0a000000
   - Col: 1
     Row: -2
     StartAtTop: 0

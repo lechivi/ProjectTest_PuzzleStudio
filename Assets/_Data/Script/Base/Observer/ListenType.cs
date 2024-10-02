@@ -1,6 +1,4 @@
 public enum ListenType
 {
-	OnMergeComplete,
-	OnUpdateProgress,
-	
+	OnMatchColor,
 }

@@ -1,6 +1,10 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
+public enum LevelResultType
+{
+	None,
+	Win,
+	Lose
+}
 
 public class GameManager : SingletonMonoBehaviour<GameManager>
 {
@@ -9,49 +13,59 @@ public class GameManager : SingletonMonoBehaviour<GameManager>
 	[SerializeField] private LevelData levelData;
 	[SerializeField] private GridSystem gridSystem;
 
+	private GoalTracker goalTracker;
+
 	private void Start()
 	{
+		this.Init();
+
+		UIManager.Instance.ShowScreen<ScreenInGame>();
 		this.LoadLevel();
 	}
 
-	[EasyButtons.Button]
-	private void LoadLevel()
+	private void Init()
 	{
-		this.gridSystem.LoadLevel(this.levelData);
+		this.goalTracker = new GoalTracker();
+		this.goalTracker.OnGoalCompleted += OnGoalCompleted;
 	}
 
-	// void Update()
-	// {
-	// 	if (Input.GetMouseButtonDown(0))
-	// 	{
-	// 		Debug.Log("Mouse Clicked");
-	// 		Vector3 mousePos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
-	// 		Vector2 mousePos2D = new Vector2(mousePos.x, mousePos.y);
+	[EasyButtons.Button]
+	public void LoadLevel()
+	{
+		this.gridSystem.LoadLevel(this.levelData);
+		this.goalTracker.SetGoal(this.levelData.GoalColors);
 
-	// 		RaycastHit2D hit = Physics2D.Raycast(mousePos2D, Vector2.zero);
-	// 		Debug.DrawRay(mousePos2D, Vector2.zero, Color.red, 2f);
+		ScreenInGame screenInGame = UIManager.Instance.GetExistScreen<ScreenInGame>();
+		screenInGame.InitGoal(this.levelData.GoalColors);
+	}
 
-	// 		if (hit.collider != null)
-	// 		{
-	// 			HexaCell tile = hit.collider.GetComponent<HexaCell>();
-	// 			if (tile != null)
-	// 			{
-	// 				tile.RotateClockwise();
+	#region  RESULT
+	public void CheckResult(LevelResultType result)
+	{
+		if (result == LevelResultType.None) return;
 
-	// 				// gridSystem.CheckAndRemoveMatchingColors(tile.row, tile.col);
-	// 				Debug.LogError("Clicked on tile: " + tile.Coord, tile.gameObject);
-	// 				for (int i = 0; i < 6; i++)
-	// 				{
-	// 					Coord neighbor = Extensions.GetHexNeighborWithDirection(tile.Coord, i);
-	// 					HexaCell cell = gridSystem.GetCell(neighbor);
-	// 					if (cell != null)
-	// 					{
-	// 						Debug.LogError("Neighbor: " + i, cell.gameObject);
-	// 					}
-	// 				}
-	// 			}
-	// 		}
-	// 	}
-	// }
+		switch (result)
+		{
+			case LevelResultType.Win: Win(); break;
+			case LevelResultType.Lose: Lose(); break;
+		}
+	}
 
+	private void OnGoalCompleted()
+	{
+		CheckResult(LevelResultType.Win);
+	}
+
+	private void Win()
+	{
+		// Debug.Log("You Win!");
+		UIManager.Instance.ShowPopup<PopupWin>();
+	}
+
+	private void Lose()
+	{
+		// Debug.Log("You Lose");
+		UIManager.Instance.ShowPopup<PopupLose>();
+	}
+	#endregion
 }

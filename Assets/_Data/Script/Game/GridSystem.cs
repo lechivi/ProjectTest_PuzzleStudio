@@ -59,7 +59,7 @@ public class GridSystem : MonoBehaviour
 			DestroyImmediate(levelHolder.GetChild(i).gameObject);
 		}
 	}
-	
+
 	public HexaCell GetCell(Coord coord)
 	{
 		if (Grids.TryGetValue(coord, out HexaCell cell))
@@ -69,6 +69,40 @@ public class GridSystem : MonoBehaviour
 		return null;
 	}
 
+	public void CheckMatchAt(Coord coord)
+	{
+		HexaCell cell = GetCell(coord);
+		if (cell == null) return;
+		
+		List<PartColorIndexes> partColorIndexes = cell.GetPartColorIndexes();
+		foreach (PartColorIndexes partColorIndex in partColorIndexes)
+		{
+			List<HexaCell> matchedCells = new List<HexaCell>();
+			foreach (int index in partColorIndex.indexes)
+			{
+				Coord neighbor = Extensions.GetHexNeighborWithDirection(coord, index);
+				HexaCell neighborCell = GetCell(neighbor);
+				if (neighborCell != null)
+				{
+					if (partColorIndex.hexColor == neighborCell.GetDirectionHexColor(index))
+					{
+						neighborCell.SetNoneColor(partColorIndex.hexColor);
+						matchedCells.Add(neighborCell);
+					}
+				}
+			}
+			
+			if (matchedCells.Count > 0)
+			{
+				cell.SetNoneColor(partColorIndex.hexColor);
+				ListenerManager.Instance.BroadCast(ListenType.OnMatchColor, partColorIndex.hexColor);
+			}
+			
+			//TODO: Check if we need to check the matched cells	
+		}
+		
+	}
+	
 	private void RenderLevel(LevelData levelData)
 	{
 		Clear();

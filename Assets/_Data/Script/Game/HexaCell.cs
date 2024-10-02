@@ -1,5 +1,9 @@
 using System.Collections.Generic;
+using System.Linq;
+using DG.Tweening;
+using TMPro;
 using UnityEngine;
+using UnityEngine.Rendering;
 
 [System.Serializable]
 public class PartColor
@@ -9,14 +13,48 @@ public class PartColor
 	public SpriteRenderer spriteRenderer;
 }
 
+[System.Serializable]
+public class PartColorIndexes
+{
+	public HexColor hexColor;
+	public List<int> indexes;
+	
+	public PartColorIndexes()
+	{
+		this.indexes = new List<int>();
+	}
+}
+
 public class HexaCell : MonoBehaviour
 {
+	public bool IsRotating { get; private set; }
 	public Coord Coord { get; private set; }
-	public List<PartColor> partColors = new List<PartColor>();
-	
-	[SerializeField] private Transform trans;
+	public List<PartColor> PartColors { get => this.partColors; }
+	public List<HexColor> HexColors { get => this.hexColors; }
 
-	private HexaColorSO hexaColorSO;
+	[SerializeField] private Transform trans;
+	[SerializeField] private SortingGroup sortingGroup;
+	// [SerializeField] private SpriteRenderer[] partSRs;
+	[SerializeField] private List<PartColor> partColors = new List<PartColor>();
+	[SerializeField] private TMP_Text coordText;
+
+	[Space]
+	[SerializeField] private float rotateDuration = 0.5f;
+
+	private HexaCellRenderer cellRenderer;
+	private List<HexColor> hexColors = new List<HexColor>();
+	
+	private const int DEFAULT_ORDER = 10;
+	private const int MOVE_ORDER = 20;
+
+	private void OnMouseDown()
+	{
+		RotateClockwise();
+
+// #if UNITY_EDITOR
+// 		Debug.Log("Clicked on tile: " + Coord, gameObject);
+// #endif
+	}
 
 	public void Init(CellData cellData, HexaColorSO hexaColorSO)
 	{
@@ -24,109 +62,115 @@ public class HexaCell : MonoBehaviour
 		this.gameObject.name = $"{cellData.Col},{cellData.Row}";
 #endif
 
-		Coord = new Coord(cellData.Col, cellData.Row);
-		this.hexaColorSO = hexaColorSO;
+		this.Coord = new Coord(cellData.Col, cellData.Row);
+		this.hexColors = cellData.Colors.ToList();
+		
+		this.cellRenderer = new HexaCellRenderer(this, hexaColorSO, cellData);
+		this.SetOrder(false);
+		
+		this.coordText.text = $"{this.Coord}";
+	}
 
-		switch (cellData.Colors.Length)
+	public int ColorCount()
+	{
+		return this.hexColors.Count;
+	}
+	
+	public List<PartColorIndexes> GetPartColorIndexes()
+	{
+		List<PartColorIndexes> partColorIndexes = new List<PartColorIndexes>();
+		foreach (PartColor partColor in partColors)
+		{
+			if (partColor.hexColor == HexColor.None) continue;
+			
+			PartColorIndexes partColorIndex = partColorIndexes.Find(x => x.hexColor == partColor.hexColor);
+			if (partColorIndex == null)
+			{
+				partColorIndex = new PartColorIndexes();
+				partColorIndex.hexColor = partColor.hexColor;
+				partColorIndex.indexes = new List<int>();
+				partColorIndexes.Add(partColorIndex);
+			}
+
+			partColorIndex.indexes.Add(partColor.index);
+		}
+
+		return partColorIndexes;
+	}
+	
+	public void SetNoneColor(HexColor hexColor)
+	{
+		int currentColor = this.ColorCount();
+		
+		switch (currentColor)
 		{
 			case 1:
-				SetColors(0, 6, cellData.Colors[0], hexaColorSO);
+				CompletCell();
 				break;
-			case 2:
-				if (cellData.StartAtTop)
-				{
-					SetColors(0, 3, cellData.Colors[0], hexaColorSO);
-					SetColors(3, 6, cellData.Colors[1], hexaColorSO);
-				}
-				else
-				{
-					SetColors(0, 1, cellData.Colors[1], hexaColorSO);
-					SetColors(1, 4, cellData.Colors[0], hexaColorSO);
-					SetColors(4, 6, cellData.Colors[1], hexaColorSO);
-				}
-				break;
-			case 3:
-				if (cellData.StartAtTop)
-				{
-					SetColors(0, 2, cellData.Colors[0], hexaColorSO);
-					SetColors(2, 4, cellData.Colors[1], hexaColorSO);
-					SetColors(4, 6, cellData.Colors[2], hexaColorSO);
-				}
-				else
-				{
-					SetColors(0, 1, cellData.Colors[2], hexaColorSO);
-					SetColors(1, 3, cellData.Colors[1], hexaColorSO);
-					SetColors(3, 5, cellData.Colors[0], hexaColorSO);
-					SetColors(5, 6, cellData.Colors[2], hexaColorSO);
-				}
+			default:
+				this.cellRenderer.UpdateCellColors(hexColor);
 				break;
 		}
 	}
-
-	private void SetColors(int startIndex, int endIndex, HexColor color, HexaColorSO hexaColorSO)
+	
+	private void CompletCell()
 	{
-		for (int i = startIndex; i < endIndex; i++)
+		foreach (PartColor partColor in partColors)
 		{
-			partColors[i].hexColor = color;
-			partColors[i].spriteRenderer.color = hexaColorSO.GetColor(color);
+			partColor.hexColor = HexColor.None;
+			partColor.spriteRenderer.color = Color.white;
 		}
+	}
+	
+	public HexColor GetDirectionHexColor(int index)
+	{
+		// return partColors[(index + 3) % 6].hexColor;
+		return GetPartColor((index + 3) % 6).hexColor;
 	}
 
 	public void RotateClockwise()
 	{
-		trans.Rotate(0, 0, -60);
-		
+		// trans.Rotate(0, 0, -60);
+
+		// for (int i = 0; i < partColors.Count; i++)
+		// {
+		// 	partColors[i].index = (partColors[i].index + 1) % 6;
+		// }
+
+		if (this.IsRotating) return;
+
+		RotateClockwise(rotateDuration);
+	}
+
+	public Sequence RotateClockwise(float duration)
+	{
+		this.IsRotating = true;
+		this.SetOrder(true);
+
+		Sequence seq = DOTween.Sequence();
+		seq.SetId(this);
+		seq.Append(trans.DOPunchScale(Vector3.one * 0.3f, duration, 5));
+		seq.Join(this.trans.DOLocalRotate(new Vector3(0, 0, this.trans.eulerAngles.z - 60), duration));
+		seq.OnComplete(() =>
+		{
+			this.IsRotating = false;
+			this.SetOrder(false);
+			this.ShiftPartColorIndex();
+			
+			GameManager.Instance.GridSystem.CheckMatchAt(this.Coord);
+		});
+
+		return seq;
+	}
+
+	private void ShiftPartColorIndex()
+	{
 		for (int i = 0; i < partColors.Count; i++)
 		{
 			partColors[i].index = (partColors[i].index + 1) % 6;
 		}
 	}
 
-	public int ColorCount()
-	{
-		List<HexColor> color = new List<HexColor>();
-		foreach (PartColor partColor in partColors)
-		{
-			if (!color.Contains(partColor.hexColor))
-			{
-				color.Add(partColor.hexColor);
-			}
-		}
-
-		return color.Count;
-	}
-
-	private void OnMouseDown()
-	{
-		RotateClockwise();
-
-#if UNITY_EDITOR
-		Debug.Log("Clicked on tile: " + Coord, gameObject);
-#endif
-		CheckMatchColor();
-	}
-
-	private void CheckMatchColor()
-	{
-		for (int i = 0; i < 6; i++)
-		{
-			Coord neighbor = Extensions.GetHexNeighborWithDirection(Coord, i);
-			HexaCell cell = GameManager.Instance.GridSystem.GetCell(neighbor);
-			if (cell != null)
-			{
-#if UNITY_EDITOR
-				Debug.Log("Neighbor: " + i, cell.gameObject);
-				
-				PartColor partColor = GetPartColor(i);
-#endif
-				if (this.partColors[i].hexColor == cell.GetDirectionHexColor(i))
-				{
-					Debug.Log("Matched " + cell.GetDirectionHexColor(i), cell.gameObject);
-				}
-			}
-		}
-	}
-	
 	private PartColor GetPartColor(int index)
 	{
 		for (int i = 0; i < partColors.Count; i++)
@@ -136,14 +180,12 @@ public class HexaCell : MonoBehaviour
 				return partColors[i];
 			}
 		}
-		
+
 		return null;
 	}
-	
-	public HexColor GetDirectionHexColor(int index)
-	{
-		// return partColors[(index + 3) % 6].hexColor;
-		return GetPartColor((index + 3) % 6).hexColor;
-	}
 
+	private void SetOrder(bool isMove)
+	{
+		sortingGroup.sortingOrder = isMove ? MOVE_ORDER : DEFAULT_ORDER;
+	}
 }
